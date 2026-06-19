@@ -60,6 +60,10 @@ export const AXE_TO_RGAA: Record<string, string> = {
   'bypass': 'Structure',
   'heading-order': 'Structure',
   'p-as-heading': 'Structure',
+  'list': 'Structure',
+  'listitem': 'Structure',
+  'definition-list': 'Structure',
+  'dlitem': 'Structure',
 
   // Thématique 10 — Présentation
   'css-orientation-lock': 'Présentation',
