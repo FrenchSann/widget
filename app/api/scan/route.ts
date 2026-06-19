@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { scanUrl } from '@/lib/scanner'
+import type { ScanReport } from '@/lib/scanner/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +14,37 @@ function isValidHttpUrl(value: unknown): value is string {
   } catch {
     return false
   }
+}
+
+/**
+ * In production (SCANNER_URL set): delegates to the external Railway service.
+ * In local dev (SCANNER_URL absent): runs Playwright directly via dynamic import,
+ * which keeps Playwright out of the Vercel bundle at build time.
+ */
+async function runScan(url: string): Promise<ScanReport> {
+  const scannerUrl = process.env.SCANNER_URL
+
+  if (scannerUrl) {
+    const res = await fetch(`${scannerUrl}/scan`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.WORKER_SECRET_KEY ?? ''}`,
+      },
+      body: JSON.stringify({ url }),
+      signal: AbortSignal.timeout(SCAN_TIMEOUT_MS),
+    })
+    if (!res.ok) {
+      const err = (await res.json().catch(() => ({}))) as { error?: string }
+      throw new Error(err.error ?? `Scanner service returned ${res.status}`)
+    }
+    const json = (await res.json()) as { data: ScanReport }
+    return json.data
+  }
+
+  // Dynamic import: Playwright is never included in the Vercel bundle
+  const { scanUrl: localScan } = await import('@/lib/scanner')
+  return localScan(url)
 }
 
 export async function POST(req: NextRequest) {
@@ -42,14 +73,14 @@ export async function POST(req: NextRequest) {
   const url = (body as Record<string, unknown>).url
   if (!isValidHttpUrl(url)) {
     return NextResponse.json(
-      { error: "URL invalide. Exemple valide : https://www.monsite.fr", code: 'INVALID_URL' },
+      { error: 'URL invalide. Exemple : https://www.monsite.fr', code: 'INVALID_URL' },
       { status: 400 }
     )
   }
 
   try {
     const result = await Promise.race([
-      scanUrl(url),
+      runScan(url),
       new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('TIMEOUT')), SCAN_TIMEOUT_MS)
       ),
@@ -66,20 +97,13 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     if (err instanceof Error && err.message === 'TIMEOUT') {
       return NextResponse.json(
-        {
-          error:
-            'Le scan a pris plus de 20 secondes. Le site est peut-être trop lent ou inaccessible depuis nos serveurs.',
-          code: 'TIMEOUT',
-        },
+        { error: 'Le scan a pris plus de 20 secondes. Réessayez avec un autre site.', code: 'TIMEOUT' },
         { status: 504 }
       )
     }
     const message = err instanceof Error ? err.message : 'Erreur inconnue'
     return NextResponse.json(
-      {
-        error: `Le scan a échoué : ${message}. Vérifiez que l'URL est accessible publiquement.`,
-        code: 'SCAN_ERROR',
-      },
+      { error: `Le scan a échoué : ${message}`, code: 'SCAN_ERROR' },
       { status: 500 }
     )
   }
