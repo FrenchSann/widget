@@ -1,36 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AccessAudit
 
-## Getting Started
+SaaS d'audit d'accessibilité web (RGAA/EAA) pour les PME françaises.
 
-First, run the development server:
+## Stack
+
+- **Next.js 14** (App Router) + TypeScript + Tailwind CSS
+- **Supabase** — Base de données, Auth, Storage
+- **Stripe** — Gestion des abonnements
+- **Playwright + axe-core** — Scanner d'accessibilité
+- **Resend** — Emails transactionnels
+
+---
+
+## Setup local
+
+### Prérequis
+
+- Node.js >= 18
+- npm >= 9
+
+### 1. Cloner et installer les dépendances
+
+```bash
+git clone <repo-url>
+cd accessaudit
+npm install
+```
+
+### 2. Configurer les variables d'environnement
+
+```bash
+cp .env.example .env.local
+```
+
+Remplir les valeurs dans `.env.local` :
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | URL de votre projet Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clé publique Supabase |
+| `SUPABASE_SERVICE_ROLE_KEY` | Clé service Supabase (côté serveur uniquement) |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Clé publique Stripe |
+| `STRIPE_SECRET_KEY` | Clé secrète Stripe |
+| `STRIPE_WEBHOOK_SECRET` | Secret webhook Stripe |
+| `RESEND_API_KEY` | Clé API Resend |
+| `RESEND_FROM_EMAIL` | Email expéditeur vérifié dans Resend |
+
+### 3. Lancer le serveur de développement
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Ouvrir [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Scripts disponibles
 
-## Learn More
+```bash
+npm run dev       # Serveur de développement avec hot-reload
+npm run build     # Build de production
+npm run start     # Serveur de production (après build)
+npm run lint      # ESLint
+npm run format    # Prettier (format tous les fichiers)
+```
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Structure du projet
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+/app          → Routes Next.js (App Router)
+/components   → Composants React réutilisables
+/lib          → Clients Supabase, Stripe, Resend + utilitaires
+/worker       → Service de scan (futur microservice Playwright + axe-core)
+/types        → Types TypeScript globaux
+/public       → Assets statiques
+```
 
-## Deploy on Vercel
+Voir [CLAUDE.md](./CLAUDE.md) pour la documentation complète du projet.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Services externes requis
+
+- [Supabase](https://supabase.com) — créer un projet gratuit
+- [Stripe](https://stripe.com) — compte en mode test suffit pour le dev
+- [Resend](https://resend.com) — compte gratuit (100 emails/jour)
