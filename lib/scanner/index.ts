@@ -28,8 +28,10 @@ export async function scanUrl(url: string): Promise<ScanReport> {
 
     await page.goto(url, {
       timeout: NAVIGATION_TIMEOUT_MS,
-      waitUntil: 'domcontentloaded',
+      waitUntil: 'load',
     })
+    // Allow up to 3s for JS-driven redirects or deferred navigation to settle
+    await page.waitForLoadState('networkidle', { timeout: 3000 }).catch(() => {})
 
     const axeResults = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'])
