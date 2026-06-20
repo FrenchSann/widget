@@ -3,12 +3,12 @@
 # The Next.js app is deployed separately on Vercel.
 
 [build]
-builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile.worker"
+builder = "NIXPACKS"
+buildCommand = "npm install && npx playwright install chromium --with-deps"
 
 [deploy]
 startCommand = "npx tsx worker/server.ts"
 healthcheckPath = "/health"
-healthcheckTimeout = 60
+healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
