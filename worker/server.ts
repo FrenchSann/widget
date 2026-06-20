@@ -10,6 +10,7 @@
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'http'
 import { scanUrl } from '../lib/scanner'
+import { startPollLoop } from './queue'
 
 const PORT = process.env.PORT ?? 3002
 const SECRET = process.env.WORKER_SECRET_KEY ?? ''
@@ -68,5 +69,20 @@ const server = createServer(async (req, res) => {
 })
 
 server.listen(PORT, () => {
-  console.log(`AccessAudit scanner service listening on port ${PORT}`)
+  console.log(`AccessAudit worker service listening on port ${PORT}`)
+
+  const hasSupabase =
+    !!(process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL) &&
+    !!process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (hasSupabase) {
+    startPollLoop().catch((err) => {
+      console.error('[queue] Poll loop crashed:', err)
+      process.exit(1)
+    })
+  } else {
+    console.warn(
+      '[queue] SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set — poll loop disabled (HTTP scan endpoint still active)'
+    )
+  }
 })

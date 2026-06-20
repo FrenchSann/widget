@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import AddSiteForm from '@/components/dashboard/AddSiteForm'
+import ScanButton from '@/components/dashboard/ScanButton'
 
 interface Site {
   id: string
@@ -22,9 +24,7 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) {
-    redirect('/login')
-  }
+  if (!user) redirect('/login')
 
   const { data: sites } = await supabase
     .from('sites')
@@ -53,27 +53,25 @@ export default async function DashboardPage() {
       <main className="max-w-5xl mx-auto px-4 py-10">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-2xl font-bold text-gray-900">Mes sites</h1>
-          <Link
-            href="/"
-            className="px-4 py-2 bg-blue-700 text-white font-semibold rounded-lg text-sm hover:bg-blue-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
-          >
-            + Analyser un site
-          </Link>
+          <AddSiteForm />
         </div>
 
         {!sites || sites.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-2xl border border-gray-200">
             <p className="text-5xl mb-4" aria-hidden="true">🔍</p>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Aucun site analysé</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Aucun site ajouté</h2>
             <p className="text-gray-500 text-sm mb-6">
-              Lancez votre premier scan depuis la page d&apos;accueil.
+              Ajoutez votre premier site pour lancer un audit complet.
             </p>
-            <Link
-              href="/"
-              className="inline-block px-6 py-2.5 bg-blue-700 text-white font-semibold rounded-lg text-sm hover:bg-blue-800 transition-colors"
-            >
-              Analyser mon premier site
-            </Link>
+            <div className="flex items-center justify-center gap-4">
+              <AddSiteForm />
+              <Link
+                href="/"
+                className="inline-block px-6 py-2.5 border border-gray-300 text-gray-700 font-semibold rounded-lg text-sm hover:bg-gray-50 transition-colors"
+              >
+                Scan rapide gratuit
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -92,6 +90,7 @@ export default async function DashboardPage() {
                     year: 'numeric',
                   })}
                 </p>
+                <ScanButton siteId={site.id} />
               </div>
             ))}
           </div>
