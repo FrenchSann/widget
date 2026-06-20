@@ -87,6 +87,33 @@ Fonctionnalités principales :
 - Commits en anglais, format conventionnel : `feat:`, `fix:`, `chore:`, `docs:`
 - Pas de secrets dans le code — toujours via variables d'environnement
 
+## Schéma de base de données (Supabase)
+
+Projet Supabase : `lgspxbfayltbwvyjurtg` (région : eu-north-1)
+
+### Tables
+
+| Table | Colonnes principales | Description |
+|-------|---------------------|-------------|
+| `auth.users` | géré par Supabase Auth | Comptes utilisateurs |
+| `sites` | id, user_id, url, name, created_at | Sites web à auditer |
+| `scans` | id, site_id, status, score, pages_scanned, started_at, finished_at | Runs de scan |
+| `issues` | id, scan_id, page_url, severity, wcag_rule, rgaa_theme, selector, description, status | Violations RGAA/WCAG |
+| `subscriptions` | id, user_id, stripe_customer_id, stripe_subscription_id, plan, status, current_period_end | Abonnements Stripe |
+| `leads` | id, email, url, score, scan_data (jsonb), created_at | Scans gratuits avant inscription |
+
+### Row Level Security
+
+- **sites / scans / issues** : un utilisateur ne voit et ne modifie que ses propres données (via `auth.uid() = user_id`)
+- **subscriptions** : lecture/écriture uniquement par le propriétaire
+- **leads** : insert public (anon peut écrire), lecture service_role uniquement
+
+### Authentification
+
+- Magic link uniquement (pas de mot de passe) via `supabase.auth.signInWithOtp()`
+- Callback : `GET /auth/callback` → échange le code PKCE → redirige vers `/dashboard`
+- Protection : `middleware.ts` redirige `/dashboard` → `/login` si non authentifié
+
 ## Variables d'environnement
 
 Voir `.env.example` pour la liste complète. Copier en `.env.local` pour le développement local.

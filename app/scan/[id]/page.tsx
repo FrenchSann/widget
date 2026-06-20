@@ -60,17 +60,34 @@ function ViolationCard({ violation }: { violation: ScanViolation }) {
 
 function EmailGate({
   remaining,
+  report,
   onUnlock,
 }: {
   remaining: number
+  report: ScanReport
   onUnlock: () => void
 }) {
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    // TODO: send email to Resend when configured
+    setLoading(true)
+    setError(null)
+
+    try {
+      await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, url: report.url, score: report.score, scanData: report }),
+      })
+    } catch {
+      // Non-blocking: unlock even if the request fails
+    }
+
+    setLoading(false)
     setSubmitted(true)
     setTimeout(onUnlock, 800)
   }
@@ -100,11 +117,13 @@ function EmailGate({
               required
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-400 mb-3"
             />
+            {error && <p className="text-red-600 text-xs mb-2">{error}</p>}
             <button
               type="submit"
-              className="w-full py-2.5 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-lg text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
+              disabled={loading}
+              className="w-full py-2.5 bg-blue-700 hover:bg-blue-800 disabled:opacity-60 text-white font-semibold rounded-lg text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
             >
-              Voir le rapport complet
+              {loading ? 'Chargement…' : 'Voir le rapport complet'}
             </button>
           </form>
           <p className="mt-3 text-xs text-gray-400">Sans spam. Désabonnement en un clic.</p>
@@ -261,7 +280,7 @@ export default function ScanResultPage() {
                 </div>
                 {!emailUnlocked && (
                   <div className="absolute inset-0 flex items-start justify-center pt-10 bg-white/60 backdrop-blur-sm rounded-xl">
-                    <EmailGate remaining={rest.length} onUnlock={() => setEmailUnlocked(true)} />
+                    <EmailGate remaining={rest.length} report={report} onUnlock={() => setEmailUnlocked(true)} />
                   </div>
                 )}
               </div>
